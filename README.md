@@ -3,6 +3,4 @@
 <h3>Used Python Libraries</h3>
    numpy
    openCV
-   Dlib
-
-
+   Dlie
