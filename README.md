@@ -3,4 +3,6 @@
 <h3>Used Python Libraries</h3>
    numpy
    openCV
-   Dlie
+   Dlib
+
+Add .dat file to run
