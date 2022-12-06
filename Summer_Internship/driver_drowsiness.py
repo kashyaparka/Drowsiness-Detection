@@ -17,23 +17,19 @@ duration = 1000
 detector = dlib.get_frontal_face_detector()
 predictor = dlib.shape_predictor("shape_predictor_68_face_landmarks.dat")
 
-#status marking for current state
-sleep = 0
-drowsy = 0
-active = 0
-status=""
+#user_status marking for current state
+sleepy_state = 0
+drowsy_state = 0
+active_state = 0
+user_status=""
 color=(0,0,0)
 
-def compute(ptA,ptB):
-    dist = np.linalg.norm(ptA - ptB)
-    return dist
+def blinked_eye(a,b,c,d,e,f):
+    vertical = compute(b,d) + compute(c,e)
+    horizontal = compute(a,f)
+    ratio = vertical/(2.0*horizontal)
 
-def blinked(a,b,c,d,e,f):
-    up = compute(b,d) + compute(c,e)
-    down = compute(a,f)
-    ratio = up/(2.0*down)
-
-    #Checking if it is blinked
+    #Checking if it is blinked_eye
     if(ratio>0.25):
         return 2
     elif(ratio>0.21 and ratio<=0.25):
@@ -41,6 +37,10 @@ def blinked(a,b,c,d,e,f):
     else:
         return 0
 
+
+def compute(ptA,ptB):
+    distance = np.linalg.norm(ptA - ptB)
+    return distance
 
 while True:
     _, frame = cap.read()
@@ -50,50 +50,50 @@ while True:
     faces = detector(gray)
     #detected face in faces array
     for face in faces:
-        x1 = face.left()
-        y1 = face.top()
-        x2 = face.right()
-        y2 = face.bottom()
+        x_coordinate = face.left()
+        y_coordinate = face.top()
+        x_coordinate_2 = face.right()
+        y_coordinate_2 = face.bottom()
 
         face_frame = frame.copy()
-        cv2.rectangle(face_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        cv2.rectangle(face_frame, (x_coordinate, y_coordinate), (x_coordinate_2, y_coordinate_2), (0, 255, 0), 2)
 
         landmarks = predictor(gray, face)
         landmarks = face_utils.shape_to_np(landmarks)
 
         #The numbers are actually the landmarks which will show eye
-        left_blink = blinked(landmarks[36],landmarks[37], 
+        left_eye_blink = blinked_eye(landmarks[36],landmarks[37], 
             landmarks[38], landmarks[41], landmarks[40], landmarks[39])
-        right_blink = blinked(landmarks[42],landmarks[43], 
+        right_eye_blink = blinked_eye(landmarks[42],landmarks[43], 
             landmarks[44], landmarks[47], landmarks[46], landmarks[45])
         
         #Now judge what to do for the eye blinks
-        if(left_blink==0 or right_blink==0):
-            sleep+=1
-            drowsy=0
-            active=0
-            if(sleep>6):
-                status="SLEEPING !!!"
+        if(left_eye_blink==0 or right_eye_blink==0):
+            sleepy_state+=1
+            drowsy_state=0
+            active_state=0
+            if(sleepy_state>6):
+                user_status="sleepy_stateING !!!"
                 color = (255,0,0)
                 winsound.Beep(freq,duration)
 
-        elif(left_blink==1 or right_blink==1):
-            sleep=0
-            active=0
-            drowsy+=1
-            if(drowsy>6):
-                status="Drowsy !"
+        elif(left_eye_blink==1 or right_eye_blink==1):
+            sleepy_state=0
+            active_state=0
+            drowsy_state+=1
+            if(drowsy_state>6):
+                user_status="drowsy_state !"
                 color = (0,0,255)
 
         else:
-            drowsy=0
-            sleep=0
-            active+=1
-            if(active>6):
-                status="Active :)"
+            drowsy_state=0
+            sleepy_state=0
+            active_state+=1
+            if(active_state>6):
+                user_status="active_state :)"
                 color = (0,255,0)
             
-        cv2.putText(frame, status, (450,450), cv2.FONT_HERSHEY_SIMPLEX, 1.2, color,3)
+        cv2.putText(frame, user_status, (450,450), cv2.FONT_HERSHEY_SIMPLEX, 1.2, color,3)
 
         for n in range(0, 68):
             (x,y) = landmarks[n]
@@ -107,13 +107,3 @@ while True:
     key = cv2.waitKey(1)
     if key == 27:
           break
-
-
-
-#some of you might get this error:-
-#1    .dat file is 60+mb so download it and remember to extract
-#2    install latest all the library which are imported install cpp boost too for dlib
-#3    this aplication only work in high light use torch (recommended during presentation).
-#4    face_frame should be global but should not initialize to None i have used following code use it right above while loop
-#        _, f = cap.read()
-#       face_frame = f.copy()
